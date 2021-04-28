@@ -32,7 +32,15 @@ class Submission:
 
     def predict(df_test):
         """
-        return a dataframe which identical shape as df_test.
+        return a dataframe (nb_examples, nb_features) which identical shape as df_test.
+
+        task1. for each row, for each col in `COLS`, we predict the value of col given the other `COLS`.
+        In the end we get a complete imputed dataframe. Please make sure all values are imputed
+        whether they are Nans or not. That is, we need to predict all the nb_examples x nb_features
+        because it is needed for evaluation.
+
+        task2. replace the col `prognosis` values by either SEVERE or MILD
+
         """
         raise NotImplementedError()
 
