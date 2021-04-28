@@ -55,6 +55,7 @@ class DummySubmission(Submission):
         df_test["Prognosis"] = "SEVERE"
         # replace missing data with 0
         df_test = df_test.fillna(0)
+        # replace the remaining cols with 0
         df_test[COLS] = 0
         return df_test
 
