@@ -60,7 +60,7 @@ class DummySubmission(Submission):
         return df_test
 
 def evaluate(submission_cls, input_path="."):
-    
+    print(f"Evaluating '{submission_cls.__name__}':")
     df_train = pd.read_csv(str(input_path) + '/trainSet.txt')
     df_test = pd.read_csv(str(input_path) + '/testSet.txt')
 
