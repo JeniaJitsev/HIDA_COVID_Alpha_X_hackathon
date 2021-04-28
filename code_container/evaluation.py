@@ -32,7 +32,7 @@ class Submission:
 
     def predict(df_test):
         """
-        return a dataframe (nb_examples, nb_features) which identical shape as df_test.
+        return a dataframe (nb_examples, nb_features) with identical shape as df_test.
 
         task1. for each row, for each col in `COLS`, we predict the value of col given the other `COLS`.
         In the end we get a complete imputed dataframe. Please make sure all values are imputed
