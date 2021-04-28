@@ -16,21 +16,24 @@ class Tests():
 
    def test_imputation_error_score(self):
         df = self.train_data[COLS]
-        
+
         missing = pd.isna(df).values
         df_true = df.copy()
         df_true[pd.isna(df)] = 1
-    
+
         df_pred = df.copy()
         df_pred[pd.isna(df)] = 0
-        score = imputation_error_score(df_true, df_pred, missing) 
-   
+        score = imputation_error_score(df_true, df_pred, missing)
+        return score
+
    def run(self):
-        self.test_imputation_error_score()
+        score = self.test_imputation_error_score()
+        return score
 
 if __name__ == "__main__":
     base_path = str(Path(__file__).resolve().parents[1])
 
     imputer = Tests(input_path=base_path + '/data/',
                                     output_dir=base_path + '/results/')
-    imputer.run()
+    score = imputer.run()
+    print('Score:', score)
