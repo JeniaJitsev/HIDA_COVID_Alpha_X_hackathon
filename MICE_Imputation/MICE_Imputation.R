@@ -15,6 +15,8 @@ cbind(NAs, total)
 
 trainSet %>%
   missing_plot()
+testSet %>%
+  missing_plot()
 
 trainSet %>% 
   select(-PatientID) %>% 
@@ -62,9 +64,8 @@ trainSet %>%
 tempData <- mice(totalSet, predictorMatrix=predM, m=1, maxit=100, meth="pmm")
 summary(tempData)
 completedData <- complete(tempData, 1)
-xyplot(tempData, pH ~ Ox_percentage,pch=18,cex=1)
+#xyplot(tempData, pH ~ Ox_percentage,pch=18,cex=1)
 densityplot(tempData)
-stripplot(tempData, pch = 20, cex = 1.2)
 
 #manually impute ImageFile values:
 completedData$ImageFile <- sapply(completedData$PatientID,function(x){paste(x,".png", sep="")})
