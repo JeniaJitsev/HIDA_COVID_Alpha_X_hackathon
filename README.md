@@ -4,3 +4,6 @@
 International virtual COVID-data challenge 
   - HIDA, ELLIS, IDSI, Helmholtz AI 
   - https://www.helmholtz-hida.de/en/activities/events/details/international-virtual-covid-data-challenge/
+  
+## Material
+- [Collaborative Notes](https://hackmd.io/EQpxOoAIQe6aXYJUr0fFfg)
