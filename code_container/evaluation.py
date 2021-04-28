@@ -86,15 +86,18 @@ def evaluate(submission_cls, input_path="."):
         true_prognosis = valid["Prognosis"]
         metrics.append({
             "prognosis_accuracy": (pred_prognosis==true_prognosis).mean(),
+            # compute imputation error only on non-nan values
             "imputation_error": imputation_error_score(valid_[COLS], pred_valid[COLS], ~(pd.isna(valid_[COLS])).values )  ,
         })
     submission = submission_cls()
     submission.fit(df_train)
     pred_test = submission.predict(df_test)
-    # pred_test[~pd.isna(df_test)] = 0#df_test[~pd.isna(df_test)]
+    # make sure the non-nan values in `df_test` are
+    # identical to the ones in `pred_test`
     pred_test = pred_test.mask(~pd.isna(df_test), df_test)
     #ensure no missing data is left
     assert np.all(~pd.isna(pred_test))
+
     return metrics, pred_test 
     
 def display_metrics(metrics):
