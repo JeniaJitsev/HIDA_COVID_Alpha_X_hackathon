@@ -74,6 +74,7 @@ def evaluate(submission_cls, input_path="."):
     df_test = pd.read_csv(os.path.join(test_path, 'testSet.txt'))
 
     random_state = RANDOM_STATE
+    rng = np.random.RandomState(random_state)
     rkf = RepeatedKFold(n_splits=N_SPLITS, n_repeats=N_REPEATS, random_state=random_state)
     metrics = []
     for train_index, valid_index in rkf.split(df_train):
@@ -87,7 +88,7 @@ def evaluate(submission_cls, input_path="."):
         # hide labels
         valid_["Prognosis"] = np.nan
         # artifically make some images missing (like the actual test set)
-        missing_images = (np.random.uniform(size=len(valid_)) <= MISSING_IMAGES_RATE)
+        missing_images = (rng.uniform(size=len(valid_)) <= MISSING_IMAGES_RATE)
         valid_.loc[missing_images, "ImageFile"] = np.nan
 
         # prediction
