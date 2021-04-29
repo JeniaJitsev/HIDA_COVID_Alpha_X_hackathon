@@ -37,7 +37,7 @@ class Tests():
             
             df_pred =  pd.read_csv(str(self.input_dir_imputed) + file)
             df_pred = df_pred[COLS]
-            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[8:])
+            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[5:])
             missing = missing[COLS].values  
             print(missing.shape)
             missing_everywhere = pd.isna(self.df_true).values #the ones that are also missing in original Set should not be uesed for computing score
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     imputer = Tests(input_path=base_path + '/data/',
                                     input_dir_missing=base_path + '/data/missing_val_info/',
-                                    input_dir_imputed= base_path+'/data/imputed/')
+                                    input_dir_imputed= base_path+'/data/train_set_with_missing_vals/imputed_data_datawig/')
     score = []
     score.append(imputer.run())
     print('Score:', score)
