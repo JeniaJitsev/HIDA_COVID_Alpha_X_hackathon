@@ -7,6 +7,13 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from hebo.sklearn_tuner import sklearn_tuner
 
+"""
+As a final submission, we used :
+
+    - task1. datawig imputation (improved over MICE)
+    - task2. gradient boosted trees using imputed values of MICE (worked better than datawig) as input
+"""
+
 cls = GradientBoostingClassifier
 # for RF
 space_cfg = [
