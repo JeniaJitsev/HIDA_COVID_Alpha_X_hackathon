@@ -159,19 +159,23 @@ ImputeandEval <- function(methods) {
     toImpute <- ldf[[i]]
     #print(filenames[[i]])
     imputed <- imputeMICE(toImpute, methods)
-    write.table(imputed, file=paste(filenames[[i]],"_MICE_RF.txt"), sep=",", quote = FALSE, row.names=F)
+    #write.table(imputed, file=paste(filenames[[i]],"_MICE_RF.txt"), sep=",", quote = FALSE, row.names=F)
     metrics <- rep(2, length(sigmas))
     for(c in 1:length(sigmas)) {
       #print(paste("Spalte", colnames(groundTruth[c])))
       metrics[c] <- evaluate(groundTruth[,(c+3)], imputed[,(c+3)], (is.na(toImpute[,(c+3)])&!is.na(groundTruth[,(c+3)])), sigmas[c], type[(c+3)])
     }
     mean[i] <- mean(metrics)
+    #print(mean[i])
   }
   return(mean)
 }
 
 groundTruth <- totalSet[(1:nrow(trainSet)),]
-methods <- list(rep("rf", ncol(groundTruth)))
+meth_cont <- "ri"
+meth_cat <- "pmm"
+#methods <- list(c(rep(meth_cat, 3),meth_cont,meth_cat,meth_cont,rep(meth_cat,2),rep(meth_cont, 9), rep(meth_cat,3)))
+methods <- list(c(rep("pmm",3),"midastouch", "pmm", "mean", "norm.nob","ri","mean", "mean", "pmm", "midastouch", "pmm", "cart","mean","cart","mean","cart","logreg","logreg"))
 sapply(methods, ImputeandEval)
 
 
