@@ -139,7 +139,8 @@ if __name__ == "__main__":
             model.type = args.model
             self.model = model
             criterion = nn.BCEWithLogitsLoss()
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            optimizer = torch.optim.AdamW(model.parameters(), lr=0.001)
+            scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01,step_size_up=5,mode="triangular2")
             # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
             print("Train")
             for epoch in range(5):
@@ -151,6 +152,7 @@ if __name__ == "__main__":
                     loss = criterion(outputs, Y)
                     loss.backward()
                     optimizer.step()
+                    scheduler.step()
                 acc = ((outputs.sigmoid()>0.5) == Y).float().mean()
                 print(loss.item(), acc.item())
             print("Finish train")
