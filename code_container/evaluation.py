@@ -13,6 +13,7 @@ It has a `fit` and `predict` method.
 the same model is evaluated several times using cross validation.
 
 """
+import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -23,9 +24,14 @@ from metrics import imputation_error_score, COLS
 N_SPLITS = 5
 N_REPEATS = 1
 RANDOM_STATE = 10101
+MISSING_IMAGES_RATE = 31/210
 
 # Abstract submission class
 class Submission:
+    
+    def __init__(self, train_path, test_path):
+        self.train_path = train_path
+        self.test_path = test_path
 
     def fit(self, df_train):
         pass
@@ -60,9 +66,12 @@ class DummySubmission(Submission):
         return df_test
 
 def evaluate(submission_cls, input_path="."):
-    print(f"Evaluating '{submission_cls.__name__}':")
-    df_train = pd.read_csv(str(input_path) + '/trainSet.txt')
-    df_test = pd.read_csv(str(input_path) + '/testSet.txt')
+    print(f"Evaluating '{submission_cls.__name__}'...")
+    train_path = os.path.join(input_path, 'trainSet')
+    test_path = os.path.join(input_path, 'testSet')
+
+    df_train = pd.read_csv(os.path.join(train_path, 'trainSet.txt'))
+    df_test = pd.read_csv(os.path.join(test_path, 'testSet.txt'))
 
     random_state = RANDOM_STATE
     rkf = RepeatedKFold(n_splits=N_SPLITS, n_repeats=N_REPEATS, random_state=random_state)
@@ -70,13 +79,18 @@ def evaluate(submission_cls, input_path="."):
     for train_index, valid_index in rkf.split(df_train):
         train = df_train.iloc[train_index]
         valid = df_train.iloc[valid_index]
-        submission = submission_cls()
+        submission = submission_cls(train_path=train_path, test_path=train_path)
         submission.fit(train)
 
         valid_ = valid.copy()
 
         # hide labels
         valid_["Prognosis"] = np.nan
+        # artifically make some images missing (like the actual test set)
+        missing_images = (np.random.uniform(size=len(valid_)) <= MISSING_IMAGES_RATE)
+        valid_.loc[missing_images, "ImageFile"] = np.nan
+
+        # prediction
 
         pred_valid = submission.predict(valid_)
         #ensure no missing data is left
@@ -86,10 +100,11 @@ def evaluate(submission_cls, input_path="."):
         true_prognosis = valid["Prognosis"]
         metrics.append({
             "prognosis_accuracy": (pred_prognosis==true_prognosis).mean(),
-            # compute imputation error only on non-nan values
+            # compute imputation error only on non-nan values (we don't know the groundtruth values
+            # for the ones which are alreay Nan)
             "imputation_error": imputation_error_score(valid_[COLS], pred_valid[COLS], ~(pd.isna(valid[COLS])).values )  ,
         })
-    submission = submission_cls()
+    submission = submission_cls(train_path=train_path, test_path=test_path)
     submission.fit(df_train)
     pred_test = submission.predict(df_test)
     # make sure the non-nan values in `df_test` are
