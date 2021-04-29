@@ -31,18 +31,20 @@ class Tests():
         for file in os.listdir(self.input_dir_imputed):
             df_pred =  pd.read_csv(str(self.input_dir_imputed) + file)
             df_pred = df_pred[COLS]
-            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[8:])
+            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[13:])
             missing = missing[COLS].values  
             missing_everywhere = pd.isna(self.df_true).values #the ones that are also missing in original Set should not be uesed for computing score
             missing[missing_everywhere]=False                               
             score = imputation_error_score(self.df_true, df_pred,missing)
             print(f"{file}: {score}")
+        return score
 
 if __name__ == "__main__":
-    base_path = str(Path(__file__).resolve().parents[1])
+    base_path = str(Path(__file__).resolve().parents[2])
 
-    imputer = Tests(input_path=base_path + '/data/',
+    imputer = Tests(input_path=base_path + '/data',
                                     input_dir_missing=base_path + '/data/missing_val_info/',
-                                    input_dir_imputed= base_path+'/data/imputed/')
-    score = imputer.run()
+                                    input_dir_imputed= base_path+'/data/train_set_with_missing_vals/imputed_data_datawig/')
+    score = []
+    score.append(imputer.run())
     print('Score:', score)
