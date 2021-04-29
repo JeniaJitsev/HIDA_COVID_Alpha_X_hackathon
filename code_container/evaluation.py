@@ -17,11 +17,11 @@ import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import RepeatedKFold, ShuffleSplit
 from metrics import imputation_error_score, COLS
 
 # cross validation scheme
-N_SPLITS = 5
+N_SPLITS = 2
 N_REPEATS = 1
 RANDOM_STATE = 10101
 MISSING_IMAGES_RATE = 31/210
@@ -75,7 +75,8 @@ def evaluate(submission_cls, input_path="."):
 
     random_state = RANDOM_STATE
     rng = np.random.RandomState(random_state)
-    rkf = RepeatedKFold(n_splits=N_SPLITS, n_repeats=N_REPEATS, random_state=random_state)
+    # rkf = RepeatedKFold(n_splits=N_SPLITS, n_repeats=N_REPEATS, random_state=random_state)
+    rkf = ShuffleSplit(n_splits=2, random_state=random_state, train_size=0.85)
     metrics = []
     for train_index, valid_index in rkf.split(df_train):
         train = df_train.iloc[train_index]
@@ -88,8 +89,8 @@ def evaluate(submission_cls, input_path="."):
         # hide labels
         valid_["Prognosis"] = np.nan
         # artifically make some images missing (like the actual test set)
-        missing_images = (rng.uniform(size=len(valid_)) <= MISSING_IMAGES_RATE)
-        valid_.loc[missing_images, "ImageFile"] = np.nan
+        # missing_images = (rng.uniform(size=len(valid_)) <= MISSING_IMAGES_RATE)
+        # valid_.loc[missing_images, "ImageFile"] = np.nan
 
         # prediction
 

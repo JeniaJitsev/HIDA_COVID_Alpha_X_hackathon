@@ -5,8 +5,9 @@ from timm.data import resolve_data_config
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
+from skimage.io import imsave
 
-
+import torch.nn as nn
 from pathlib import Path
 import torch
 from PIL import Image
@@ -30,20 +31,6 @@ LABEL = "Prognosis"
 classname_to_index = {"SEVERE": 1, "MILD": 0}
 WORKERS = 16
 XRV = ['chex', 'all']
-
-@torch.no_grad()
-def extract_features(model, dataloader, avg_pool=False, device="cpu"):
-    Flist = []
-    Ylist = []
-    for i, (X, Y) in enumerate(dataloader):
-        X = X.to(device)
-        x = features(model, X, avg_pool=avg_pool)
-        x = x.view(x.size(0), -1)
-        x = x.data.cpu()
-        Flist.append(x)
-        Ylist.append(Y)
-    return torch.cat(Flist).numpy(), torch.cat(Ylist).numpy()
-
 
 class CustomDataSet(Dataset):
     def __init__(self, filenames, transform=None, labels=None):
@@ -85,8 +72,9 @@ def features(model, x, avg_pool=True):
 def load_model(model_type):
     if model_type in XRV:
         model = xrv.models.DenseNet(weights=model_type)
+        model.classifier = nn.Linear(1024, 1)
     else:
-        model = timm.create_model(args.model, pretrained=True)
+        model = timm.create_model(args.model, pretrained=True, num_classes=1)
     return model
 
 def build_transforms(model):
@@ -97,6 +85,13 @@ def build_transforms(model):
         config = resolve_data_config({}, model=model)
         transform = create_transform(**config)
         return transform
+
+def pred(model, X):
+    if model.type in XRV:
+        outputs = model.classifier(model.features2(X))[:,0]
+    else:
+        outputs = model(X)[:,0]
+    return outputs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Pytorch Image Models where we fine-tune only last layer')
@@ -110,15 +105,13 @@ if __name__ == "__main__":
     else:
         device = "cpu"
     print("Device:", device)
-    model = load_model(args.model)
-    model = model.to(device)
-    model.eval()
-    model.type = args.model
 
     index_to_classname = {i:n for n, i in classname_to_index.items()}
+    model = load_model(args.model)
+    model.type = args.model
     transform = build_transforms(model)
 
-    class FineTuneLastLayer(Submission):
+    class FullFineTuning(Submission):
         """
         Simple fine-tuneing of last layer of pre-trained models
         from TIMM's repo (https://github.com/rwightman/pytorch-image-models).
@@ -137,22 +130,34 @@ if __name__ == "__main__":
             train_loader = torch.utils.data.DataLoader(
                 train_dataset,
                 batch_size=args.batch_size,
-                shuffle=False,
+                shuffle=True,
                 num_workers=WORKERS,
             )
-            # extract features of last layer
-            X_train, y_train = extract_features(model, train_loader, avg_pool=not args.no_avg_pool, device=device)
-            print(X_train.shape, y_train.shape)
-            # fit linear model to predict prognosis
-            # clf = LogisticRegression(class_weight="balanced", n_jobs=-1)
-            # clf = RandomForestClassifier(n_jobs=-1)
-            clf = GradientBoostingClassifier()
-            clf.fit(X_train, y_train)
-            print("train acc", (clf.predict(X_train) == y_train).mean())
-            self.clf = clf
+            model = load_model(args.model)
+            model = model.to(device)
+            model.train()
+            model.type = args.model
+            self.model = model
+            criterion = nn.BCEWithLogitsLoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+            print("Train")
+            for epoch in range(5):
+                for X, Y in train_loader:
+                    X = X.to(device)
+                    Y = Y.float().to(device)
+                    optimizer.zero_grad()
+                    outputs = pred(model, X)
+                    loss = criterion(outputs, Y)
+                    loss.backward()
+                    optimizer.step()
+                acc = ((outputs.sigmoid()>0.5) == Y).float().mean()
+                print(loss.item(), acc.item())
+            print("Finish train")
             
         def predict(self, df_test):
-
+            torch.cuda.empty_cache()
+            self.model.eval()
             # construct test dataset using non missing images
             df_test = df_test.copy()
             missing_images = pd.isna(df_test.ImageFile)
@@ -163,9 +168,14 @@ if __name__ == "__main__":
                 shuffle=False,
                 num_workers=WORKERS,
             )
-            # extract features of last layer
-            X_test, _ = extract_features(model, test_loader, avg_pool=not args.no_avg_pool, device=device)
-            Y_pred_test = self.clf.predict(X_test)
+            Y_pred_test = []
+            with torch.no_grad():
+                for X, _ in test_loader:
+                    X = X.to(device)
+                    outputs = pred(self.model, X)
+                    y = (outputs.sigmoid() > 0.5).cpu().numpy().astype(int)
+                    Y_pred_test.append(y)
+            Y_pred_test = np.concatenate(Y_pred_test).tolist()
             # predict the prognosis label
             Y_pred_test = [index_to_classname[y] for y in Y_pred_test]
             
@@ -177,4 +187,4 @@ if __name__ == "__main__":
             if np.any(missing_images):
                 df_test_imputed.loc[missing_images, LABEL] = self.tabular.predict(df_test[missing_images])
             return df_test_imputed
-    full_evaluation(FineTuneLastLayer)
+    full_evaluation(FullFineTuning)
