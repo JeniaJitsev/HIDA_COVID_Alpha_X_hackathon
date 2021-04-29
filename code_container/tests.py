@@ -2,18 +2,19 @@ from pathlib import Path
 from metrics import imputation_error_score, COLS
 import pandas as pd
 import numpy as np
-
+import os
 
 class Tests():
 
-   def __init__(self, input_path=None, output_dir=None):
+   def __init__(self, input_path=None, input_dir_missing=None, input_dir_imputed = None):
         # Required parameters
         self.rng = np.random.RandomState(12)
         self.input_path = input_path
-        self.output_dir = output_dir
-        self.train_data = pd.read_csv(str(self.input_path) + '/trainSet.txt')
-        self.test_data = pd.read_csv(str(self.input_path) + '/testSet.txt')
-
+        self.input_dir_missing = input_dir_missing
+        self.input_dir_imputed= input_dir_imputed
+        self.df_true = pd.read_csv(str(self.input_path) + '/trainSet.txt')
+        self.df_true = self.df_true [COLS]
+   
    def test_imputation_error_score(self):
         df = self.train_data[COLS]
 
@@ -26,14 +27,22 @@ class Tests():
         score = imputation_error_score(df_true, df_pred, missing)
         return score
 
-   def run(self):
-        score = self.test_imputation_error_score()
-        return score
+   def run(self):        
+        for file in os.listdir(self.input_dir_imputed):
+            df_pred =  pd.read_csv(str(self.input_dir_imputed) + file)
+            df_pred = df_pred[COLS]
+            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[8:])
+            missing = missing[COLS].values  
+            missing_everywhere = pd.isna(self.df_true).values #the ones that are also missing in original Set should not be uesed for computing score
+            missing[missing_everywhere]=False                               
+            score = imputation_error_score(self.df_true, df_pred,missing)
+            print(f"{file}: {score}")
 
 if __name__ == "__main__":
     base_path = str(Path(__file__).resolve().parents[1])
 
     imputer = Tests(input_path=base_path + '/data/',
-                                    output_dir=base_path + '/results/')
+                                    input_dir_missing=base_path + '/data/missing_val_info/',
+                                    input_dir_imputed= base_path+'/data/imputed/')
     score = imputer.run()
     print('Score:', score)
