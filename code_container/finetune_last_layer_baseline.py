@@ -87,10 +87,20 @@ transform = create_transform(**config)
 index_to_classname = {i:n for n, i in classname_to_index.items()}
 
 class FineTuneLastLayer(Submission):
+    """
+    Simple fine-tuneing of last layer of pre-trained models
+    from TIMM's repo (https://github.com/rwightman/pytorch-image-models).
 
+    At test time:
+    - if the image is available, use the learned model for predicting prognosis
+    - If the image is not available, use the simple tabular baseline (tabular_baseline.py)
+      for predicting prognosis
+    """
     def fit(self, df_train):
         self.tabular = TabularBaseline(train_path=self.train_path, test_path=self.test_path)
         self.tabular.fit(df_train)
+
+        # build image dataset
         train_dataset = build_dataset(df_train, folder=os.path.join(self.train_path, args.img_version))
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -98,12 +108,16 @@ class FineTuneLastLayer(Submission):
             shuffle=False,
             num_workers=WORKERS,
         )
+        # extract features of last layer
         X_train, y_train = extract_features(model, train_loader, avg_pool=args.avg_pool, device=device)
+        # fit linear model to predict prognosis
         clf = LogisticRegression(max_iter=1000,class_weight="balanced")
         clf.fit(X_train, y_train)
         self.clf = clf
         
     def predict(self, df_test):
+
+        # construct test dataset using non missing images
         df_test = df_test.copy()
         missing_images = pd.isna(df_test.ImageFile)
         test_dataset = build_dataset(df_test[~missing_images], folder=os.path.join(self.test_path, args.img_version))
@@ -113,8 +127,10 @@ class FineTuneLastLayer(Submission):
             shuffle=False,
             num_workers=WORKERS,
         )
+        # extract features of last layer
         X_test, _ = extract_features(model, test_loader, avg_pool=args.avg_pool, device=device)
         Ypred_test = self.clf.predict(X_test)
+        # predict the prognosis label
         Ypred_test = [index_to_classname[y] for y in Ypred_test]
         
         # use tabular model to impute
