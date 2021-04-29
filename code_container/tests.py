@@ -12,8 +12,7 @@ class Tests():
         self.input_path = input_path
         self.input_dir_missing = input_dir_missing
         self.input_dir_imputed= input_dir_imputed
-        self.df_true = pd.read_csv(str(self.input_path) + '/trainSet.txt')
-        self.df_true = self.df_true [COLS]
+       
    
    def test_imputation_error_score(self):
         df = self.train_data[COLS]
@@ -29,6 +28,8 @@ class Tests():
    def run(self):
         scores =[]        
         for file in os.listdir(self.input_dir_imputed):
+            self.df_true = pd.read_csv(str(self.input_path) + '/trainSet.txt')
+            self.df_true = self.df_true [COLS]
             if file[:len('imputed_train')]=='imputed_train':
                  test = pd.read_csv(str(self.input_path) + '/testSet.txt')[COLS]
                  if self.df_true.shape[0]==863: 
