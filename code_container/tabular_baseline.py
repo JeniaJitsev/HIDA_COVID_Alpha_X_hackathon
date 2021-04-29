@@ -1,12 +1,11 @@
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
-from evaluation import COLS, full_evaluation
+from evaluation import COLS, full_evaluation, Submission
 
 LABEL = "Prognosis"
 
-class TabularBaseline:
-
+class TabularBaseline(Submission):
 
     def fit(self, df_train):
         self.imp = SimpleImputer(missing_values=np.nan, strategy='mean')
@@ -30,4 +29,5 @@ class TabularBaseline:
         df_test[COLS] = x
         return df_test
 
-full_evaluation(TabularBaseline)
+if __name__ == "__main__":
+    full_evaluation(TabularBaseline)
