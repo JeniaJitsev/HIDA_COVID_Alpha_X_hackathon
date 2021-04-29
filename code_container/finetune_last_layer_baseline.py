@@ -14,7 +14,6 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 from evaluation import full_evaluation
 from sklearn.ensemble import RandomForestClassifier
-import torchxrayvision as xrv
 
 import timm
 from timm.data.transforms_factory import create_transform
@@ -68,7 +67,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Pytorch Image Models where we fine-tune only last layer')
     parser.add_argument('--model', default="resnet50", type=str, required=True)
     parser.add_argument('--batch-size', default=64, type=int)
-    parser.add_argument('--avg-pool', default=False, action="store_true")
+    parser.add_argument('--no-avg-pool', default=False, action="store_true")
     parser.add_argument('--img-version', default="rawImg")
     args = parser.parse_args()
     if torch.cuda.is_available():
@@ -76,13 +75,12 @@ if __name__ == "__main__":
     else:
         device = "cpu"
     print("Device:", device)
-    #model = timm.create_model(args.model, pretrained=True)
-    model = xrv.models.DenseNet(weights="chex")
-    model.classifier=torch.nn.Linear(1024,1)
+    model = timm.create_model(args.model, pretrained=True)
     model = model.to(device)
     model.eval()
     config = resolve_data_config({}, model=model)
     transform = create_transform(**config)
+    print(transform.transforms)
     index_to_classname = {i:n for n, i in classname_to_index.items()}
 
     class FineTuneLastLayer(Submission):
@@ -108,9 +106,10 @@ if __name__ == "__main__":
                 num_workers=WORKERS,
             )
             # extract features of last layer
-            X_train, y_train = extract_features(model, train_loader, avg_pool=args.avg_pool, device=device)
+            X_train, y_train = extract_features(model, train_loader, avg_pool=not args.no_avg_pool, device=device)
+            print(X_train.shape, y_train.shape)
             # fit linear model to predict prognosis
-            clf = LogisticRegression(max_iter=1000,class_weight="balanced")
+            clf = LogisticRegression(class_weight="balanced", n_jobs=-1)
             clf.fit(X_train, y_train)
             self.clf = clf
             
@@ -127,7 +126,7 @@ if __name__ == "__main__":
                 num_workers=WORKERS,
             )
             # extract features of last layer
-            X_test, _ = extract_features(model, test_loader, avg_pool=args.avg_pool, device=device)
+            X_test, _ = extract_features(model, test_loader, avg_pool=not args.no_avg_pool, device=device)
             Ypred_test = self.clf.predict(X_test)
             # predict the prognosis label
             Ypred_test = [index_to_classname[y] for y in Ypred_test]
