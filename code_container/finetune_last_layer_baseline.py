@@ -14,6 +14,7 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 from evaluation import full_evaluation
 from sklearn.ensemble import RandomForestClassifier
+import torchxrayvision as xrv
 
 import timm
 from timm.data.transforms_factory import create_transform
@@ -75,7 +76,9 @@ if __name__ == "__main__":
     else:
         device = "cpu"
     print("Device:", device)
-    model = timm.create_model(args.model, pretrained=True)
+    #model = timm.create_model(args.model, pretrained=True)
+    model = xrv.models.DenseNet(weights="chex")
+    model.classifier=torch.nn.Linear(1024,1)
     model = model.to(device)
     model.eval()
     config = resolve_data_config({}, model=model)
