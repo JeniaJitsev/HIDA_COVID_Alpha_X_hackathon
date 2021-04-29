@@ -40,7 +40,7 @@ class Tests():
         return score
 
 if __name__ == "__main__":
-    base_path = str(Path(__file__).resolve().parents[2])
+    base_path = str(Path(__file__).resolve().parents[1])
 
     imputer = Tests(input_path=base_path + '/data',
                                     input_dir_missing=base_path + '/data/missing_val_info/',
