@@ -7,7 +7,7 @@ import os
 class Tests():
 
    def __init__(self, input_path=None, input_dir_missing=None, input_dir_imputed = None):
-        # Required parameters
+        
         self.rng = np.random.RandomState(12)
         self.input_path = input_path
         self.input_dir_missing = input_dir_missing
@@ -17,7 +17,6 @@ class Tests():
    
    def test_imputation_error_score(self):
         df = self.train_data[COLS]
-
         missing = pd.isna(df).values
         df_true = df.copy()
         df_true[pd.isna(df)] = 1
@@ -27,24 +26,35 @@ class Tests():
         score = imputation_error_score(df_true, df_pred, missing)
         return score
 
-   def run(self):        
+   def run(self):
+        scores =[]        
         for file in os.listdir(self.input_dir_imputed):
+            if file[:len('imputed_train')]=='imputed_train':
+                 test = pd.read_csv(str(self.input_path) + '/testSet.txt')[COLS]
+                 if self.df_true.shape[0]==863: 
+                     self.df_true = self.df_true.append(test)                
+            
             df_pred =  pd.read_csv(str(self.input_dir_imputed) + file)
             df_pred = df_pred[COLS]
-            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[13:])
+            missing = pd.read_csv(str(self.input_dir_missing) + 'info_missing_'+file[8:])
             missing = missing[COLS].values  
+            print(missing.shape)
             missing_everywhere = pd.isna(self.df_true).values #the ones that are also missing in original Set should not be uesed for computing score
+            print(missing_everywhere.shape)
+
             missing[missing_everywhere]=False                               
             score = imputation_error_score(self.df_true, df_pred,missing)
             print(f"{file}: {score}")
-        return score
-
+            scores.append(score)
+        return sum(scores)/len(scores)
+                
 if __name__ == "__main__":
-    base_path = str(Path(__file__).resolve().parents[2])
+    base_path = str(Path(__file__).resolve().parents[1])
 
-    imputer = Tests(input_path=base_path + '/data',
+    imputer = Tests(input_path=base_path + '/data/',
                                     input_dir_missing=base_path + '/data/missing_val_info/',
-                                    input_dir_imputed= base_path+'/data/train_set_with_missing_vals/imputed_data_datawig/')
+                                    input_dir_imputed= base_path+'/data/imputed/')
     score = []
     score.append(imputer.run())
     print('Score:', score)
+
